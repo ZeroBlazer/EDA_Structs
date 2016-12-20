@@ -4,18 +4,40 @@
 
 using namespace std;
 
-#define RTree_temp template<typename Data_t, int NMaxNodes, int NMinNodes>
-#define RTree_t RTree<Data_t, NMaxNodes, NMinNodes>
+#define RTree_temp template<typename Data_t, typename Elem_t, size_t NDims, int NMaxNodes, int NMinNodes>
+#define RTree_t RTree<Data_t, Elem_t, NDims, NMaxNodes, NMinNodes>
 
-template <typename Data_t, int NMaxNodes = 3, int NMinNodes = NMaxNodes/2>
+template <typename Data_t, typename Elem_t, size_t NDims = 2, int NMaxNodes = 3, int NMinNodes = NMaxNodes/2>
 class RTree
 {
 protected:
-    struct Node;
+    struct Page;
 
 public:
     RTree();
-    ~RTree();
+    virtual ~RTree();
+
+    void insert();
+
+    struct Box {
+        Elem_t  min[NDims],
+                max[NDims];
+    };
+
+    struct Node {
+        Box box;
+        union {
+            Page *page_child;
+            Data_t data;
+        };
+    };
+
+    struct Page {
+        bool isLeaf()   {   return level == 0;  }
+
+        size_t size;
+        size_t level;
+    };
 
 private:
     
