@@ -4,26 +4,15 @@
 
 using namespace std;
 
-class RNode
-{
-public:
-    RNode();
-    ~RNode();
+#define RTree_temp template<typename Data_t, int NMaxNodes, int NMinNodes>
+#define RTree_t RTree<Data_t, NMaxNodes, NMinNodes>
 
-private:
-    
-};
-
-RNode::RNode()
-{
-}
-
-RNode::~RNode()
-{
-}
-
+template <typename Data_t, int NMaxNodes = 3, int NMinNodes = NMaxNodes/2>
 class RTree
 {
+protected:
+    struct Node;
+
 public:
     RTree();
     ~RTree();
@@ -32,10 +21,15 @@ private:
     
 };
 
-RTree::RTree()
+RTree_temp
+RTree_t::RTree()
 {
 }
 
-RTree::~RTree()
+RTree_temp
+RTree_t::~RTree()
 {
 }
+
+#undef RTREE_TEMPLATE
+#undef RTREE_QUAL
