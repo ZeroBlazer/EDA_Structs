@@ -51,7 +51,11 @@ protected:
         Box()   {}
         Box(Point &_min, Point &_max) : min(_min),  max(_max)   {}
 
-        bool operator<(Box &_othr);
+        Elem_t area();
+
+        bool operator<(Box &_othr) {
+            return area() < _othr.area();
+        }
         
         Box& operator+(Box &_othr) {
             Box result();
@@ -69,12 +73,17 @@ protected:
                 if(_othr.max.axes[i] > max.axes[i]) max.axes[i] = _othr.max.axes[i];
             }
 
-#ifdef _ZOMBIE_
-    for(uint i = 0; i < NDims; ++i) {
-        cout << min.axes[i] << "\t";
-    }
-    cout << endl;
-#endif // _ZOMBIE_
+            #ifdef _ZOMBIE_
+                cout << "(";
+                for(uint i = 0; i < NDims; ++i) {
+                    cout << min.axes[i] << "\t";
+                }
+                cout << ")\t(";
+                for(uint i = 0; i < NDims; ++i) {
+                    cout << max.axes[i] << "\t";
+                }
+                cout << ")\n";
+            #endif // _ZOMBIE_
 
             return *this;
         }
@@ -85,19 +94,22 @@ protected:
 
     //Cada Nodo en una página
     struct Node {
-        Node() : page_child(NULL), hasChild(false)   {}
+        // Node() : page_child(NULL), hasChild(false)   {}
+        Node()  {}        
         Node(Data_t &data, Point &pos);
         ~Node();
 
-        bool hasChild;
+        // void setChild(Page *child);
 
-        union {
-            struct {
-                Data_t  dat;
-                Point   pos;
-            } data;
-            Page *page_child;
-        };
+        // bool hasChild;
+        // union {
+            // struct {
+                // Data_t  dat;
+        Data_t  data;
+        Point   pos;
+            // } data;
+            // Page *page_child;
+        // };
     };
 
     //Página de NMaxNodes Nodos
@@ -113,6 +125,8 @@ protected:
                 level;
         Box box;
         Node *nodes[NMaxNodes];
+        Page *children[NMaxNodes];
+        Page *parent;
     };
 };
 
@@ -131,40 +145,60 @@ RTree_t::~RTree()
 }
 
 RTree_template
-RTree_t::Node::Node(Data_t &_data, Point &_pos) :
-    hasChild(false)
+RTree_t::Node::Node(Data_t &_data, Point &_pos)
 {
-    data.dat = _data;
-    data.pos = _pos;
+    // data.dat = _data;
+    // data.pos = _pos;
+    data = _data;
+    pos = _pos;
 }
 
 RTree_template
 RTree_t::Node::~Node() {
-    if(hasChild)
-        delete page_child;
+    // if(hasChild)
+    //     delete page_child;
 #ifdef _ZOMBIE_
-    cout << data.dat << endl;
+    cout << data << endl;
 #endif // _ZOMBIE_
 }
 
 RTree_template
 RTree_t::Page::Page() :
     size(0),
-    level(0)                                //Es hoja cuando se crea
+    level(0),
+    parent(NULL)                                //Es hoja cuando se crea
 {
-    for(uint i = 0; i < NMaxNodes; ++i)
+    for(uint i = 0; i < NMaxNodes; ++i) {
         nodes[i] = NULL;
+        children[i] = NULL;
+    }
 }
 
 RTree_template
 RTree_t::Page::~Page() {
     if(level == 0)
-    for(int i = 0; i < NMaxNodes; ++i)
-        if(nodes[i])
-            delete nodes[i];
+    for(int i = 0; i < NMaxNodes; ++i) {
+        if(nodes[i])    delete nodes[i];
+        if(children[i])    delete children[i];
+    }
 }
 
 //FUNCIONES
+RTree_template
+Elem_t RTree_t::Box::area() {
+    Elem_t area = 1;
+    for(uint i = 0; i < NDims; ++i) {
+        area *= max.axes[i] - min.axes[i];
+    }
+    return area;
+}
+
+// RTree_template
+// void RTree_t::Node::setChild(RTree_t::Page *child) {
+//     page_child = child;
+//     hasChild = true;
+// }
+
 RTree_template
 void RTree_t::insert(Point point, Data_t data) {
     // auto to_insert = new Node(data);
@@ -184,17 +218,21 @@ void RTree_t::Page::insert(Box &_bound, Node *p_dataNode) {
         }
 
         nodes[size++] = p_dataNode;
-        //Adaptación del bounding rectangle a la medida
-        box += _bound;
-            // for(uint i = 0; i < NDims; ++i) {       
-            //     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];
-            //     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];
-            // }
+        box += _bound;                  //Adaptación del bounding rectangle a la medida
+            // for(uint i = 0; i < NDims; ++i) {//     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];//     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];// }
     }
-    else
-        cout << "split" << endl;
-}
+    else {
+        ++level;        //El árbol aumenta su altura
+        // if(parent) {    //Preguntar al padre si tiene espacio
 
+        // }
+        // else {
+            Page    *left_child,
+                    *right_child;
+        // }
+    }
+        
+}
 
 #undef RTree_templateLATE
 #undef RTREE_QUAL

@@ -6,7 +6,7 @@ OBJS = main.o RTree.o
 rtree: ${OBJS}
 	${CC} ${CFLAGS} -o rtree ${OBJS} ${LIBS}
 
-main.o: main.cpp
+main.o: main.cpp RTree.o 
 	${CC} ${CFLAGS} -c main.cpp ${LIBS}
 
 RTree.o: RTree.cpp RTree.h 
