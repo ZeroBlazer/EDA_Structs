@@ -11,7 +11,7 @@ int main() {
     MyRTree my_tree;
     my_tree.insert(MyRTree::Point( 5, 45), string("Denver"));
     my_tree.insert(MyRTree::Point(27, 35), string("Omaha"));
-    my_tree.insert(MyRTree::Point(82, 65), string("Buffalo"));
+    // my_tree.insert(MyRTree::Point(82, 65), string("Buffalo"));
     // my_tree.insert(MyRTree::Point(62, 77), string("Toronto"));
     // my_tree.insert(MyRTree::Point(32, 42), string("Chicago"));
     // my_tree.insert(MyRTree::Point(52, 10), string("Mobile"));
