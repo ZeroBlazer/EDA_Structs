@@ -52,7 +52,32 @@ protected:
         Box(Point &_min, Point &_max) : min(_min),  max(_max)   {}
 
         bool operator<(Box &_othr);
-        Box& operator+(Box &_othr);
+        
+        Box& operator+(Box &_othr) {
+            Box result();
+            for(uint i = 0; i < NDims; ++i) {
+                result.min.axes[i] = min.axes[i] < _othr.min.axes[i] ? min.axes[i] : _othr.min.axes[i];
+                result.max.axes[i] = max.axes[i] > _othr.max.axes[i] ? max.axes[i] : _othr.max.axes[i];
+            }
+
+            return result;
+        }
+
+        Box& operator+=(Box &_othr) {
+            for(uint i = 0; i < NDims; ++i) {
+                if(_othr.min.axes[i] < min.axes[i]) min.axes[i] = _othr.min.axes[i];
+                if(_othr.max.axes[i] > max.axes[i]) max.axes[i] = _othr.max.axes[i];
+            }
+
+#ifdef _ZOMBIE_
+    for(uint i = 0; i < NDims; ++i) {
+        cout << min.axes[i] << "\t";
+    }
+    cout << endl;
+#endif // _ZOMBIE_
+
+            return *this;
+        }
 
         Point   min,
                 max;
@@ -153,24 +178,23 @@ void RTree_t::Page::insert(Box &_bound, Node *p_dataNode) {
     cout << "Tamaño de página: " << size << endl;
     if(size < NMaxNodes) {
         //Inicializa los tamaños del bounding rectangle
-        // if(size == 0) {
-        //     for(uint i = 0; i < NDims; ++i) {
-        //         box.min.axes[i] = _bound.axes[i];
-        //         box.max.axes[i] = _bound.axes[i];
-        //     }
-        // }
+        if(size == 0) {
+            box.min = _bound.min;
+            box.max = _bound.max;
+        }
 
         nodes[size++] = p_dataNode;
-        
-        //Hace que el bounding rectangle se adapte a la medida
-        // for(uint i = 0; i < NDims; ++i) {       
-        //     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];
-        //     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];
-        // }
+        //Adaptación del bounding rectangle a la medida
+        box += _bound;
+            // for(uint i = 0; i < NDims; ++i) {       
+            //     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];
+            //     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];
+            // }
     }
     else
         cout << "split" << endl;
 }
+
 
 #undef RTree_templateLATE
 #undef RTREE_QUAL
