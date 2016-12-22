@@ -3,7 +3,7 @@
 
 using namespace std;
 
-typedef RTree<string, int, 2, 3, 2> MyRTree;
+typedef RTree<string, int, 2, 4, 2> MyRTree;
 
 int main() {
     cout << "Hello World!" << endl;
