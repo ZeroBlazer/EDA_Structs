@@ -67,7 +67,7 @@ protected:
             return result;
         }
 
-        Box& operator+=(Box &_othr) {
+        Box& operator+=(Box _othr) {
             for(uint i = 0; i < NDims; ++i) {
                 if(_othr.min.axes[i] < min.axes[i]) min.axes[i] = _othr.min.axes[i];
                 if(_othr.max.axes[i] > max.axes[i]) max.axes[i] = _othr.max.axes[i];
@@ -95,21 +95,19 @@ protected:
     //Cada Nodo en una página
     struct Node {
         // Node() : page_child(NULL), hasChild(false)   {}
-        Node()  {}        
+        Node() : child(NULL) {}        
         Node(Data_t &data, Point &pos);
         ~Node();
 
-        // void setChild(Page *child);
+        Box nodeBox() {
+            if(child)
+                return child->box;
+            return Box(pos, pos);
+        }
 
-        // bool hasChild;
-        // union {
-            // struct {
-                // Data_t  dat;
         Data_t  data;
         Point   pos;
-            // } data;
-            // Page *page_child;
-        // };
+        Page    *child;
     };
 
     //Página de NMaxNodes Nodos
@@ -117,11 +115,17 @@ protected:
         Page();
         ~Page();
 
-        inline bool isLeaf()   {   return level == 0;  }
+        inline bool isLeaf()    {   return level == 0;  }
 
-        void insert(Box &_bound, Node *p_dataNode);
+        inline bool notFull()   {   return size < NMaxNodes;  }
 
-        size_t  size,
+        void partitionTo(Page *part);
+
+        void rebound();
+
+        void insert(Box _bound, Node *p_dataNode);
+
+        uint    size,
                 level;
         Box box;
         Node *nodes[NMaxNodes];
@@ -142,10 +146,14 @@ RTree_t::~RTree()
 {
     if(root)
         delete root;
+    #ifdef _ZOMBIE_
+        cout << "Tree killed" << endl;
+    #endif // _ZOMBIE_
 }
 
 RTree_template
-RTree_t::Node::Node(Data_t &_data, Point &_pos)
+RTree_t::Node::Node(Data_t &_data, Point &_pos) :
+    child(NULL)
 {
     // data.dat = _data;
     // data.pos = _pos;
@@ -176,11 +184,14 @@ RTree_t::Page::Page() :
 
 RTree_template
 RTree_t::Page::~Page() {
-    if(level == 0)
+    // if(level == 0)
     for(int i = 0; i < NMaxNodes; ++i) {
         if(nodes[i])    delete nodes[i];
         if(children[i])    delete children[i];
     }
+    #ifdef _ZOMBIE_
+        cout << "Page killed" << endl;
+    #endif // _ZOMBIE_
 }
 
 //FUNCIONES
@@ -208,7 +219,25 @@ void RTree_t::insert(Point point, Data_t data) {
 }
 
 RTree_template
-void RTree_t::Page::insert(Box &_bound, Node *p_dataNode) {
+void RTree_t::Page::rebound() {
+    box.min = nodes[0]->child->box.min;
+    box.max = nodes[0]->child->box.max;
+    for(uint i = 1; i < size; i++)
+        box += nodes[i]->nodeBox();
+}
+
+RTree_template
+void RTree_t::Page::partitionTo(Page *part) {
+    for(uint i = 0; i < NMaxNodes; i++) {
+        part->insert(nodes[i]->nodeBox(), nodes[i]);
+        nodes[i] = NULL;
+    }
+    size = NMinNodes;
+    rebound();
+}
+
+RTree_template
+void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
     cout << "Tamaño de página: " << size << endl;
     if(size < NMaxNodes) {
         //Inicializa los tamaños del bounding rectangle
@@ -222,14 +251,19 @@ void RTree_t::Page::insert(Box &_bound, Node *p_dataNode) {
             // for(uint i = 0; i < NDims; ++i) {//     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];//     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];// }
     }
     else {
-        ++level;        //El árbol aumenta su altura
-        // if(parent) {    //Preguntar al padre si tiene espacio
+        Page *partition;
+        partitionTo(partition);
 
-        // }
-        // else {
-            Page    *left_child,
-                    *right_child;
-        // }
+        if(parent && parent->notFull()) {    //Preguntar al padre si tiene espacio
+            Node *newNode = new Node();
+            newNode->child = partition;
+            parent->insert(newNode->nodeBox(), newNode);
+        }
+        else {
+            Page *newRoot;
+
+        }
+        // ++level;        //El árbol aumenta su altura
     }
         
 }
