@@ -220,17 +220,20 @@ void RTree_t::insert(Point point, Data_t data) {
 
 RTree_template
 void RTree_t::Page::rebound() {
-    box.min = nodes[0]->child->box.min;
-    box.max = nodes[0]->child->box.max;
+//    if(size == 0)   return;
+    Point _tmp1 = nodes[0]->nodeBox().min,
+          _tmp2 = nodes[0]->nodeBox().max;
+    box.min = _tmp1;
+    box.max = _tmp2;
     for(uint i = 1; i < size; i++)
         box += nodes[i]->nodeBox();
 }
 
 RTree_template
 void RTree_t::Page::partitionTo(Page *part) {
-    for(uint i = 0; i < NMaxNodes; i++) {
+    for(uint i = NMinNodes; i < NMaxNodes;) {
         part->insert(nodes[i]->nodeBox(), nodes[i]);
-        nodes[i] = NULL;
+        nodes[i++] = NULL;
     }
     size = NMinNodes;
     rebound();
@@ -251,7 +254,7 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
             // for(uint i = 0; i < NDims; ++i) {//     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];//     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];// }
     }
     else {
-        Page *partition;
+        Page *partition = new Page();
         partitionTo(partition);
 
         if(parent && parent->notFull()) {    //Preguntar al padre si tiene espacio
@@ -260,7 +263,7 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
             parent->insert(newNode->nodeBox(), newNode);
         }
         else {
-            Page *newRoot;
+//            Page *newRoot;
 
         }
         // ++level;        //El árbol aumenta su altura
