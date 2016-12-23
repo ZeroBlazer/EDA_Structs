@@ -8,7 +8,9 @@ using namespace std;
 #define RTree_t RTree<Data_t, Elem_t, NDims, NMaxNodes, NMinNodes>
 
 #define _ZOMBIE_
-//
+
+uint pageIDr = 0;
+
 template <typename Data_t, typename Elem_t, uint NDims = 2, int NMaxNodes = 8, int NMinNodes = NMaxNodes/2>
 class RTree
 {
@@ -143,6 +145,7 @@ protected:
         Box box;
         Node *nodes[NMaxNodes];
         Page *parent;
+        int     ID;
     };
 };
 
@@ -184,6 +187,7 @@ RTree_template
 RTree_t::Page::Page() :
     size(0),
     level(0),
+    ID(pageIDr++),
     parent(NULL)                                //Es hoja cuando se crea
 {
     for(uint i = 0; i < NMaxNodes; ++i) {
@@ -267,6 +271,7 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode, bool _toReallocate) {
 //            if(min_chld->box < children(i)->box)
                 min_chld = children(i);
         }
+        box += _bound;
         min_chld->insert(_bound, p_dataNode);
 
         return;
@@ -298,12 +303,9 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode, bool _toReallocate) {
             partition(partition1, partition2);      //Solve children here (partition don't have children)
             Node    *newNode1 = new Node(),     *newNode2 = new Node();
             newNode1->child = partition1;       newNode2->child = partition2;
-            this->insert(newNode1->nodeBox(), newNode1);
-            this->insert(newNode2->nodeBox(), newNode2);
-            children(0) = partition1;
-            children(1) = partition2;
-            partition1->parent = this;
-            partition2->parent = this;
+            this->insert(newNode1->nodeBox(), newNode1);    this->insert(newNode2->nodeBox(), newNode2);
+            children(0) = partition1;                       children(1) = partition2;
+            partition1->parent = this;                      partition2->parent = this;
             ++level;        //El árbol aumenta su altura
             this->insert(_bound, p_dataNode);
         }
