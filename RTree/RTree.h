@@ -134,7 +134,7 @@ protected:
 
         void rebound();
 
-        void insert(Box _bound, Node *p_dataNode);
+        void insert(Box _bound, Node *p_dataNode, bool _toReallocate = false);
 
         inline Page*& children(uint pos)   { return nodes[pos]->child;     }
 
@@ -254,8 +254,13 @@ void RTree_t::Page::partitionTo(Page *part) {
 }
 
 RTree_template
-void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
+void RTree_t::Page::insert(Box _bound, Node *p_dataNode, bool _toReallocate) {
     if(level > 0) {
+        if(_toReallocate) {
+            nodes[size++] = p_dataNode;
+            box += _bound;                  //Adaptación del bounding rectangle a la medida
+            return;
+        }
         auto min_chld = children(0);
         for(uint i = 1; i < size; ++i) {
             if((children(i)->box) + _bound < (min_chld->box) + _bound)
@@ -283,7 +288,9 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
             partitionTo(partition);
             Node *newNode = new Node();
             newNode->child = partition;
-            parent->insert(newNode->nodeBox(), newNode);
+//            parent->nodes[parent->size++] = newNode;
+            partition->insert(_bound, p_dataNode);
+            parent->insert(newNode->nodeBox(), newNode, true);
 //            parent->children((parent->size)-1) = partition;
         }
         else {
