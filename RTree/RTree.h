@@ -119,6 +119,8 @@ protected:
 
         inline bool notFull()   {   return size < NMaxNodes;  }
 
+        void partition(Page *part1, Page *part2);
+
         void partitionTo(Page *part);
 
         void rebound();
@@ -230,6 +232,18 @@ void RTree_t::Page::rebound() {
 }
 
 RTree_template
+void RTree_t::Page::partition(Page *part1, Page *part2) {
+    for(uint i = 0; i < NMaxNodes;) {
+        if(i < NMinNodes)
+            part1->insert(nodes[i]->nodeBox(), nodes[i]);
+        else
+            part2->insert(nodes[i]->nodeBox(), nodes[i]);
+        nodes[i++] = NULL;
+    }
+    size = 0;
+}
+
+RTree_template
 void RTree_t::Page::partitionTo(Page *part) {
     for(uint i = NMinNodes; i < NMaxNodes;) {
         part->insert(nodes[i]->nodeBox(), nodes[i]);
@@ -254,17 +268,20 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
             // for(uint i = 0; i < NDims; ++i) {//     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];//     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];// }
     }
     else {
-        Page *partition = new Page();
-        partitionTo(partition);
-
         if(parent && parent->notFull()) {    //Preguntar al padre si tiene espacio
+            Page *partition = new Page();
+            partitionTo(partition);
             Node *newNode = new Node();
             newNode->child = partition;
             parent->insert(newNode->nodeBox(), newNode);
         }
         else {
-//            Page *newRoot;
-
+            Page    *partition1 = new Page(),   *partition2 = new Page();
+            partition(partition1, partition2);
+            Node    *newNode1 = new Node(),     *newNode2 = new Node();
+            newNode1->child = partition1;       newNode2->child = partition2;
+            insert(newNode1->nodeBox(), newNode1);
+            insert(newNode2->nodeBox(), newNode2);
         }
         // ++level;        //El árbol aumenta su altura
     }
