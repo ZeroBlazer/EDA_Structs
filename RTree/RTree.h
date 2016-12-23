@@ -50,20 +50,29 @@ protected:
     struct Box {
         Box()   {}
         Box(Point &_min, Point &_max) : min(_min),  max(_max)   {}
+//        Box(Box &_cpy) : min(_cpy.min),  max(_cpy.max)          {}
 
         Elem_t area();
 
-        bool operator<(Box &_othr) {
+        bool operator<(Box _othr) {
+            #ifdef _ZOMBIE_
+                cout << "Areas: " << area() << " vs " << _othr.area() << endl;
+            #endif // _ZOMBIE_
             return area() < _othr.area();
         }
         
-        Box& operator+(Box &_othr) {
-            Box result();
-            for(uint i = 0; i < NDims; ++i) {
-                result.min.axes[i] = min.axes[i] < _othr.min.axes[i] ? min.axes[i] : _othr.min.axes[i];
-                result.max.axes[i] = max.axes[i] > _othr.max.axes[i] ? max.axes[i] : _othr.max.axes[i];
-            }
+        Box operator+(Box &_othr) {
+            Box result;
 
+            for(uint i = 0; i < NDims; ++i) {
+                result.min.axes[i] = min.axes[i];
+                result.max.axes[i] = max.axes[i];
+            }
+            result += _othr;
+//            for(uint i = 0; i < NDims; ++i) {
+//                result.min.axes[i] = min.axes[i] < _othr.min.axes[i] ? min.axes[i] : _othr.min.axes[i];
+//                result.max.axes[i] = max.axes[i] > _othr.max.axes[i] ? max.axes[i] : _othr.max.axes[i];
+//            }
             return result;
         }
 
@@ -127,11 +136,12 @@ protected:
 
         void insert(Box _bound, Node *p_dataNode);
 
+        inline Page*& children(uint pos)   { return nodes[pos]->child;     }
+
         uint    size,
                 level;
         Box box;
         Node *nodes[NMaxNodes];
-        Page *children[NMaxNodes];
         Page *parent;
     };
 };
@@ -157,16 +167,14 @@ RTree_template
 RTree_t::Node::Node(Data_t &_data, Point &_pos) :
     child(NULL)
 {
-    // data.dat = _data;
-    // data.pos = _pos;
     data = _data;
     pos = _pos;
 }
 
 RTree_template
 RTree_t::Node::~Node() {
-    // if(hasChild)
-    //     delete page_child;
+    if(child)
+        delete child;
 #ifdef _ZOMBIE_
     cout << data << endl;
 #endif // _ZOMBIE_
@@ -180,17 +188,15 @@ RTree_t::Page::Page() :
 {
     for(uint i = 0; i < NMaxNodes; ++i) {
         nodes[i] = NULL;
-        children[i] = NULL;
+//        children(i) = NULL;
     }
 }
 
 RTree_template
 RTree_t::Page::~Page() {
     // if(level == 0)
-    for(int i = 0; i < NMaxNodes; ++i) {
+    for(int i = 0; i < NMaxNodes; ++i)
         if(nodes[i])    delete nodes[i];
-        if(children[i])    delete children[i];
-    }
     #ifdef _ZOMBIE_
         cout << "Page killed" << endl;
     #endif // _ZOMBIE_
@@ -206,16 +212,8 @@ Elem_t RTree_t::Box::area() {
     return area;
 }
 
-// RTree_template
-// void RTree_t::Node::setChild(RTree_t::Page *child) {
-//     page_child = child;
-//     hasChild = true;
-// }
-
 RTree_template
 void RTree_t::insert(Point point, Data_t data) {
-    // auto to_insert = new Node(data);
-    // root->insert(to_insert);
     Box bound(point, point);
     root->insert(bound, new Node(data, point));
 }
@@ -238,6 +236,7 @@ void RTree_t::Page::partition(Page *part1, Page *part2) {
             part1->insert(nodes[i]->nodeBox(), nodes[i]);
         else
             part2->insert(nodes[i]->nodeBox(), nodes[i]);
+        children(i) = NULL;
         nodes[i++] = NULL;
     }
     size = 0;
@@ -248,6 +247,7 @@ void RTree_t::Page::partitionTo(Page *part) {
     for(uint i = NMinNodes; i < NMaxNodes;) {
         part->insert(nodes[i]->nodeBox(), nodes[i]);
         nodes[i++] = NULL;
+        children(i++) = NULL;
     }
     size = NMinNodes;
     rebound();
@@ -255,7 +255,18 @@ void RTree_t::Page::partitionTo(Page *part) {
 
 RTree_template
 void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
-    cout << "Tamaño de página: " << size << endl;
+    if(level > 0) {
+        auto min_chld = children(0);
+        for(uint i = 1; i < size; ++i) {
+            if((children(i)->box) + _bound < (min_chld->box) + _bound)
+//            if(min_chld->box < children(i)->box)
+                min_chld = children(i);
+        }
+        min_chld->insert(_bound, p_dataNode);
+
+        return;
+    }
+
     if(size < NMaxNodes) {
         //Inicializa los tamaños del bounding rectangle
         if(size == 0) {
@@ -265,7 +276,6 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
 
         nodes[size++] = p_dataNode;
         box += _bound;                  //Adaptación del bounding rectangle a la medida
-            // for(uint i = 0; i < NDims; ++i) {//     if(box.min.axes[i] > _bound.axes[i]) box.min.axes[i] = _bound.axes[i];//     if(box.max.axes[i] < _bound.axes[i]) box.max.axes[i] = _bound.axes[i];// }
     }
     else {
         if(parent && parent->notFull()) {    //Preguntar al padre si tiene espacio
@@ -274,16 +284,22 @@ void RTree_t::Page::insert(Box _bound, Node *p_dataNode) {
             Node *newNode = new Node();
             newNode->child = partition;
             parent->insert(newNode->nodeBox(), newNode);
+//            parent->children((parent->size)-1) = partition;
         }
         else {
             Page    *partition1 = new Page(),   *partition2 = new Page();
-            partition(partition1, partition2);
+            partition(partition1, partition2);      //Solve children here (partition don't have children)
             Node    *newNode1 = new Node(),     *newNode2 = new Node();
             newNode1->child = partition1;       newNode2->child = partition2;
-            insert(newNode1->nodeBox(), newNode1);
-            insert(newNode2->nodeBox(), newNode2);
+            this->insert(newNode1->nodeBox(), newNode1);
+            this->insert(newNode2->nodeBox(), newNode2);
+            children(0) = partition1;
+            children(1) = partition2;
+            partition1->parent = this;
+            partition2->parent = this;
+            ++level;        //El árbol aumenta su altura
+            this->insert(_bound, p_dataNode);
         }
-        // ++level;        //El árbol aumenta su altura
     }
         
 }
