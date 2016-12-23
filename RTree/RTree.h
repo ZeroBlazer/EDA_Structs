@@ -82,17 +82,17 @@ protected:
                 if(_othr.max.axes[i] > max.axes[i]) max.axes[i] = _othr.max.axes[i];
             }
 
-            #ifdef _ZOMBIE_
-                cout << "(";
-                for(uint i = 0; i < NDims; ++i) {
-                    cout << min.axes[i] << "\t";
-                }
-                cout << ")\t(";
-                for(uint i = 0; i < NDims; ++i) {
-                    cout << max.axes[i] << "\t";
-                }
-                cout << ")\n";
-            #endif // _ZOMBIE_
+            // #ifdef _ZOMBIE_
+            //     cout << "(";
+            //     for(uint i = 0; i < NDims; ++i) {
+            //         cout << min.axes[i] << "\t";
+            //     }
+            //     cout << ")\t(";
+            //     for(uint i = 0; i < NDims; ++i) {
+            //         cout << max.axes[i] << "\t";
+            //     }
+            //     cout << ")\n";
+            // #endif // _ZOMBIE_
 
             return *this;
         }
